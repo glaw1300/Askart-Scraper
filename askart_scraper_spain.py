@@ -13,6 +13,16 @@ import random
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import Select
+import threading
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException, ElementNotInteractableException
+
+def thread_pause():
+    while True:
+        if input("pause: ") == "pause":
+            break
 
 def login(driver, u, p):
     driver.get('https://www.askart.com/')
@@ -75,7 +85,9 @@ def parse_lots(soup, artist, d):
 options = Options()
 options.page_load_strategy = 'normal'
 driver = webdriver.Firefox(options=options)
-driver.implicitly_wait(5)
+driver.implicitly_wait(3)
+wait = WebDriverWait(driver, 3)
+
 BASE_URL = "https://www.askart.com/Search.aspx"
 artists_path = "artists.txt"
 prev_url = BASE_URL
@@ -92,12 +104,21 @@ session.mount(BASE_URL, gateway)
 # load in artists into list, set, and dictionary
 #artists = [a.strip() for a in open(artists_path, "r")]
 a_info = {}
-letters = ['c','d','e','f','g','h','i','j','k','l','m','n','o',
-        'p','q','r','s','t','u','v','w','x','y','z']
+letters = ['h','i','j','k','l','m','n','o',
+        'p','q','r','s','t','u','v','w','x','y','z']#'a', 'b', 'c','d','e','f','g',
 ix = 0
 driver.get(BASE_URL)
 
+# for pausing script
+thread = threading.Thread(target=thread_pause)
+thread.start()
+
 for start_let in letters:
+    if not thread.is_alive():
+        input("continue: ")
+        thread = threading.Thread(target=thread_pause)
+        thread.start()
+
     #if artist == "Pablo Picasso" or artist == "Salvador Dalí":
     #    print(f"Skipping {artist}")
     #    continue
@@ -109,14 +130,14 @@ for start_let in letters:
 
     # filter to spain, 1909-1989, 500 results per page
     filter_search('MainPageContent_selectCountry', 'Spain')
-    time.sleep(1)
+    time.sleep(.5)
     filter_search('MainPageContent_selectYearStart', '1910')
-    time.sleep(1)
+    time.sleep(.5)
     filter_search('MainPageContent_selectYearEnd', '1989')
-    time.sleep(1)
+    time.sleep(.5)
     select = Select(driver.find_element_by_id("MainPageContent_RecordsPerPage"))
     select.select_by_value("500")
-    time.sleep(1)
+    time.sleep(.5)
 
     # search
     search("*", start_let, driver)
@@ -130,6 +151,11 @@ for start_let in letters:
         links[i] = links[i].get_attribute("href")
 
     for link in links:
+        if not thread.is_alive():
+            input("continue: ")
+            thread = threading.Thread(target=thread_pause)
+            thread.start()
+
         driver.get(link)
         artist = driver.find_element_by_tag_name("h1").text.split("\n")[-1]
 
@@ -142,16 +168,51 @@ for start_let in letters:
 
         # filter by paintings
         # click filter/sort
-        time.sleep(.5)
-        driver.find_element_by_id("FilterDescription").find_element_by_tag_name("a").click()
-        time.sleep(.5)
+        # time.sleep(.5)
+        driver.execute_script("CenterDivFilter();")
+
         # get selecter
-        select = Select(driver.find_element_by_id('MainPageContent_selectArtworkType'))
+        err = True
+        while err:
+            try:
+                selectel = wait.until(EC.element_to_be_clickable((By.ID, "MainPageContent_selectArtworkType")))
+                err = False
+            except:
+                driver.execute_script("CenterDivFilter();")
+
+        select = Select(selectel)
         try:
             select.select_by_value('Painting')
-        except:
+        except NoSuchElementException:
             print(f"No paintings for {artist}")
             continue
+        except ElementNotInteractableException:
+            valid = True
+            while True:
+                try:
+                    driver.execute_script("CenterDivFilter();")
+                    select.select_by_value('Painting')
+                    break
+                except NoSuchElementException:
+                    print(f"No paintings for {artist}")
+                    valid = False
+                    break
+                except ElementNotInteractableException:
+                    pass
+            if not valid:
+                continue
+
+        # sort by auction price to get relevant data for sure
+        driver.execute_script("CenterDivFilter();")
+        err = True
+        while err:
+            try:
+                selectel = wait.until(EC.element_to_be_clickable((By.ID, 'selectSortBy')))
+                select = Select(selectel)
+                select.select_by_value("salesprice")
+                err = False
+            except:
+                driver.execute_script("CenterDivFilter();")
 
         # while there is still a show more records button to click, scroll to bottom, click, repeat
         while True:
@@ -175,6 +236,6 @@ for start_let in letters:
         parse_lots(soup, artist, a_info)
 
         # temporarily save results
-        pickle.dump(a_info, open("a_z2.pkl", "wb"))
+        pickle.dump(a_info, open("a_z_fin2.pkl", "wb"))
 
 print(a_info)

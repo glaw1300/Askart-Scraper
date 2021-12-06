@@ -111,7 +111,7 @@ a_info = {a:[] for a in artists}
 
 ix = 0
 na = len(artists)
-for line in artists:
+for line in artists[6:]:
     artist = line.strip()
     print(f"Starting {artist} – {ix}/{na}")
     ix += 1
@@ -154,11 +154,11 @@ for line in artists:
         else:
             break
         time.sleep(random.random() + 1) # sleep ~ 1 second btw each page
-        if pnum % 20 == 0: # sleep 5 seconds every 20 pages
-            time.sleep(5)
+        if pnum % 20 == 0: # sleep 3 seconds every 20 pages
+            time.sleep(3)
     # temporarily save results
-    pickle.dump(a_info, open("tmp2.pkl", "wb"))
-    print("Waiting 10 before proceeding...")
-    time.sleep(7)
+    pickle.dump(a_info, open("tmp4.pkl", "wb"))
+    print("Waiting 5 before proceeding...")
+    time.sleep(5)
 
 print(a_info)

@@ -66,20 +66,22 @@ driver.implicitly_wait(5)
 BASE_URL = "https://www.askart.com/Search_Auction_Houses.aspx"
 
 # load in artists into list, set, and dictionary
-data = pickle.load(open("master.pkl", "rb"))
+data = pickle.load(open("df.pkl", "rb"))
 
 # get set of auction houses
 ahs = set()
-for vals in data.values():
-    for v in vals:
-        ahs.add(v[5])
+
+for s in data.seller.values:
+    ahs.add(s)
+
+print(f"{len(ahs)} unique AHs")
 
 # have to do this twice for some reason
 driver.get(BASE_URL)
 driver.get(BASE_URL)
 
 ahmap = {}
-
+bad = 0
 for ah in tqdm.tqdm(ahs):
     fail = True
     while fail:
@@ -91,13 +93,33 @@ for ah in tqdm.tqdm(ahs):
             info = driver.find_element_by_css_selector(".sticky-top-filtercount~div").text
 
             if "No records match the filter criteria" in info:
-                print(ah)
-                print("BAD!")
+                bad += 1
+                print(f"None found for {ah}")
                 info = None
+                break
+
+            if "Madrid" in info:
+                info = "Madrid"
+            elif "Belgium" in info:
+                info = "Belgium"
+            elif "England" in info or "United Kingdom" in info:
+                info = "England"
+            elif "France" in info:
+                info = "France"
+            elif "Italy" in info:
+                info = "Italy"
+            elif "Switzerland" in info:
+                info = "Switzerland"
+            elif "Indonesia" in info:
+                info = "Indonesia"
+            elif "Germany" in info:
+                info = "Germany"
+            elif "USA" in info or "United States" in info:
+                info = "USA"
             fail = False
         except:
             print("trying again")
 
     ahmap[ah] = info
-
-pickle.dump(ahmap, open("auction_houses_fin.pkl", "wb"))
+print(f"{bad} failed to get")
+pickle.dump(ahmap, open("new_ah_fin.pkl", "wb"))
