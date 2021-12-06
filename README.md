@@ -1,1 +1,1 @@
-Simple bot for scraping artprice.com. It currently scrapes 20th century Spanish artists. An artprice.com acccount is required. I am running on Python 3.8 within a conda environment. Artist list, account info, and gecko driver not included.
+Simple bot for scraping askart.com. It currently scrapes 20th century Spanish artists. An askart.com acccount is required. I am running on Python 3.8 within a conda environment. Artist list, account info, and gecko driver not included.
